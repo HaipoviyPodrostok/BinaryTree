@@ -9,7 +9,7 @@
 
 tree_err_t tree_ctor(tree_t* tree, call_cnt_t* call_cnt) {
     
-    assert(tree != NULL);
+    assert(tree != NULL);    
     assert(call_cnt != NULL);
     
     //TREE INITIALIZATION
@@ -45,7 +45,7 @@ tree_err_t tree_ctor(tree_t* tree, call_cnt_t* call_cnt) {
 
 tree_err_t node_add(tree_t* tree, int data) {
     
-    assert(tree != NULL);
+    assert(tree != NULL);    
 
     if (tree->root == NULL) {
         tree->root = (node_t*) calloc(1, sizeof(node_t));
@@ -54,7 +54,7 @@ tree_err_t node_add(tree_t* tree, int data) {
     }
     
     else {
-        add_recursion(tree->root, data);
+        ERROR_HANDLE(add_recursion(tree->root, data));
     }
     
     return TREE_ERR_SUCCESS;
@@ -62,32 +62,38 @@ tree_err_t node_add(tree_t* tree, int data) {
 
 tree_err_t add_recursion(node_t* current, int data) {
     
+    assert(current != NULL);    
+    
     if (data < current->data) {
         if (current->left == NULL) {
             current->left = (node_t*) calloc(1, sizeof(node_t));
+            if (current->left == NULL)    return TREE_ERR_SELECTION_ERROR;
             current->left->data = data;
         } 
         
         else {
-            add_recursion(current->left, data);
+            ERROR_HANDLE(add_recursion(current->left, data));
         }
     }
     
     else {
         if (current->right == NULL) {
             current->right = (node_t*) calloc(1, sizeof(node_t));
+            if (current->right == NULL)    return TREE_ERR_SELECTION_ERROR;
             current->right->data = data;
         }
         
         else {
-            add_recursion(current->right, data);
+            ERROR_HANDLE(add_recursion(current->right, data));
         }
     }
+
+    return TREE_ERR_SUCCESS;
 }
 
 tree_err_t tree_dump(tree_t* tree, call_cnt_t* call_cnt) {
     
-    assert(tree != NULL);
+    assert(tree != NULL);        
     assert(call_cnt != NULL);
 
     if (tree->root == NULL) {
@@ -98,7 +104,7 @@ tree_err_t tree_dump(tree_t* tree, call_cnt_t* call_cnt) {
     call_cnt->call_num++;
     
     FILE* counter_file = fopen(COUNTER_FILE, "r");
-    fscanf(counter_file, "Last launch_num = %lu", &call_cnt->launch_num);
+    if (fscanf(counter_file, "Last launch_num = %lu", &call_cnt->launch_num) != 1)    return TREE_ERR_FILE_READING_ERROR;
 
     char dot_file_name[100] = "";
     sprintf(dot_file_name, "Text_dumps/tree_dump_%lu_%lu.dot", call_cnt->launch_num, call_cnt->call_num);
@@ -106,7 +112,7 @@ tree_err_t tree_dump(tree_t* tree, call_cnt_t* call_cnt) {
     FILE* dot_file = fopen(dot_file_name, "w");
     fprintf(dot_file, DOT_TITLE);
 
-    recurs_func(tree->root, dot_file, tree);
+    ERROR_HANDLE(dump_recursion(tree->root, dot_file, tree));
 
     fprintf(dot_file, "}");
     fclose(dot_file);
@@ -119,25 +125,25 @@ tree_err_t tree_dump(tree_t* tree, call_cnt_t* call_cnt) {
     return TREE_ERR_SUCCESS;
 }
 
-tree_err_t recurs_func(node_t* current, FILE* dot_file, tree_t* tree) {
+tree_err_t dump_recursion(node_t* current, FILE* dot_file, tree_t* tree) {
     
+    assert(tree != NULL);        
     assert(current != NULL);
     assert(dot_file != NULL);
-    assert(tree != NULL);
 
-    if (current->left)    recurs_func(current->left, dot_file, tree);
-    if (current->right)   recurs_func(current->right, dot_file, tree);
+    if (current->left)    ERROR_HANDLE(dump_recursion(current->left, dot_file, tree));
+    if (current->right)   ERROR_HANDLE(dump_recursion(current->right, dot_file, tree));
       
-    print_node(current, dot_file, tree);
+    ERROR_HANDLE(print_node(current, dot_file, tree));
 
     return TREE_ERR_SUCCESS;
 }
 
 tree_err_t print_node(node_t* current, FILE* dot_file, tree_t* tree) {
     
+    assert(tree != NULL);    
     assert(current != NULL);
     assert(dot_file != NULL);
-    assert(tree != NULL);
 
     char fillcolor [20] = "";
     
@@ -152,17 +158,14 @@ tree_err_t print_node(node_t* current, FILE* dot_file, tree_t* tree) {
     return TREE_ERR_SUCCESS;
 }
 
-tree_err_t tree_dtor(tree_t* tree) {
-
-    if (tree == NULL)    return TREE_ERR_NOT_EXIST;    
-    if (tree->root == NULL)    return TREE_ERR_TREE_IS_EMPTY;
+void tree_dtor(tree_t* tree) {
+    
+    assert(tree != NULL);
 
     dtor_node(tree->root);
-
-    return TREE_ERR_SUCCESS;
 }
 
-tree_err_t dtor_node(node_t* current) {
+void dtor_node(node_t* current) {
     
     assert(current != NULL);
 
@@ -170,6 +173,4 @@ tree_err_t dtor_node(node_t* current) {
     if (current->right != NULL)   dtor_node(current->right);  
     
     free(current); 
-
-    return TREE_ERR_SUCCESS;
 }
